@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/architecture.png">
+</p>
+
 # 🍕 Serverless Pizza
 A fully automated, serverless pizzeria operating on AWS.
 
