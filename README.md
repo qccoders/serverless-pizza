@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/architecture.png">
+  <img src="https://raw.githubusercontent.com/qccoders/serverless-pizza/master/docs/architecture.PNG">
 </p>
 
 # 🍕 Serverless Pizza
