@@ -1,0 +1,4 @@
+.vs
+bin
+obj
+aws-lambda-tools-defaults.json
