@@ -1,12 +1,8 @@
-using System;
-using System.IO;
-using System.Text;
-
-using Newtonsoft.Json;
-
 using Amazon.Lambda.Core;
 using Amazon.Lambda.DynamoDBEvents;
-using Amazon.DynamoDBv2.Model;
+using Amazon.Lambda;
+using Amazon.Lambda.Model;
+using System.Linq;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
@@ -15,7 +11,23 @@ namespace router
 {
     public class Function
     {
-        private static readonly JsonSerializer _jsonSerializer = new JsonSerializer();
+        // No arguments; credentials and region are pulled from environment variables auto-populated by Lambda
+        private AmazonLambdaClient _client = new AmazonLambdaClient();
+
+        private void Invoke(string functionName, DynamoDBEvent.DynamodbStreamRecord record)
+        {
+            // TODO: figure out why Lambda invocation doesn't work
+            var request = new InvokeRequest
+            {
+                FunctionName = functionName,
+                InvocationType = "Event",           // Execute Lambda asynchronously
+                Payload = record.ToString(),
+            };
+
+            var response = _client.InvokeAsync(request);
+            LambdaLogger.Log(response.ToString());
+            LambdaLogger.Log($"Invoked {functionName} Lambda");
+        }
 
         public void FunctionHandler(DynamoDBEvent dynamoEvent, ILambdaContext context)
         {
@@ -23,24 +35,31 @@ namespace router
 
             foreach (var record in dynamoEvent.Records)
             {
-                LambdaLogger.Log($"Event ID: {record.EventID}");
-                LambdaLogger.Log($"Event Name: {record.EventName}");
+                var events = record.Dynamodb.NewImage["events"].L;
 
-                string streamRecordJson = SerializeStreamRecord(record.Dynamodb);
-                LambdaLogger.Log($"DynamoDB Record:");
-                LambdaLogger.Log(streamRecordJson );
+                if (events.Count == 0)
+                {
+                    Invoke("ServerlessPizzaPrep", record);
+                }
+                else
+                {
+                    switch (events.Last().M["type"].S)
+                    {
+                        case "prep":
+                            Invoke("ServerlessPizzaCook", record);
+                            break;
+                        case "cook":
+                            Invoke("ServerlessPizzaFinish", record);
+                            break;
+                        case "finish":
+                            string id = record.Dynamodb.NewImage["id"].S;
+                            LambdaLogger.Log($"Order {id} complete.");
+                            break;
+                    }
+                }
             }
 
             LambdaLogger.Log("Stream processing complete.");
-        }
-
-        private string SerializeStreamRecord(StreamRecord streamRecord)
-        {
-            using (var writer = new StringWriter())
-            {
-                _jsonSerializer.Serialize(writer, streamRecord);
-                return writer.ToString();
-            }
         }
     }
 }
