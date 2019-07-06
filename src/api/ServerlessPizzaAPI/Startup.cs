@@ -20,6 +20,7 @@
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddMemoryCache();
 
             services.AddSingleton<IAmazonDynamoDB, AmazonDynamoDBClient>((s) => new AmazonDynamoDBClient(RegionEndpoint.USEast1));
         }
