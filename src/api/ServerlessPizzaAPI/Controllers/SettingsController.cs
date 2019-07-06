@@ -41,7 +41,7 @@
 
                 settings = new { Crusts = crusts.value, Toppings = toppings.value };
 
-                Cache.Set(SETTINGS_CACHE_KEY, settings, new MemoryCacheEntryOptions() { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60) });
+                Cache.Set(SETTINGS_CACHE_KEY, settings, new MemoryCacheEntryOptions() { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(300) });
                 Response.Headers.Add("X-Cache", "MISS");
             }
             else
