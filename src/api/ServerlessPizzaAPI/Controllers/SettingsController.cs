@@ -1,6 +1,7 @@
 ﻿namespace ServerlessPizzaAPI.Controllers
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
     using Amazon.DynamoDBv2.DocumentModel;
@@ -14,6 +15,8 @@
     {
         private const string TABLE_NAME = "serverless-pizza-settings";
         private const string SETTINGS_CACHE_KEY = "settings";
+
+        private static readonly SemaphoreSlim cacheSyncRoot = new SemaphoreSlim(1, 1);
 
         private IAmazonDynamoDB Client { get; }
         private IMemoryCache Cache { get; }
@@ -29,24 +32,31 @@
         {
             if (!Cache.TryGetValue(SETTINGS_CACHE_KEY, out var settings))
             {
-                Table table = Table.LoadTable(Client, TABLE_NAME);
+                await cacheSyncRoot.WaitAsync();
 
-                var crustsTask = table.GetItemAsync("crusts");
-                var toppingsTask = table.GetItemAsync("toppings");
+                try
+                {
+                    settings = await Cache.GetOrCreateAsync(SETTINGS_CACHE_KEY, async entry =>
+                    {
+                        Table table = Table.LoadTable(Client, TABLE_NAME);
 
-                await Task.WhenAll(crustsTask, toppingsTask);
+                        var crustsTask = table.GetItemAsync("crusts");
+                        var toppingsTask = table.GetItemAsync("toppings");
 
-                dynamic crusts = JsonConvert.DeserializeObject((await crustsTask).ToJson());
-                dynamic toppings = JsonConvert.DeserializeObject((await toppingsTask).ToJson());
+                        await Task.WhenAll(crustsTask, toppingsTask);
 
-                settings = new { Crusts = crusts.value, Toppings = toppings.value };
+                        dynamic crusts = JsonConvert.DeserializeObject((await crustsTask).ToJson());
+                        dynamic toppings = JsonConvert.DeserializeObject((await toppingsTask).ToJson());
 
-                Cache.Set(SETTINGS_CACHE_KEY, settings, new MemoryCacheEntryOptions() { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(300) });
-                Response.Headers.Add("X-Cache", "MISS");
-            }
-            else
-            {
-                Response.Headers.Add("X-Cache", "HIT");
+                        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(1);
+
+                        return new { Crusts = crusts.value, Toppings = toppings.value };
+                    });
+                }
+                finally
+                {
+                    cacheSyncRoot.Release();
+                }
             }
 
             return settings;
