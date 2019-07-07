@@ -11,6 +11,7 @@
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Caching.Memory;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Serialization;
     using ServerlessPizzaAPI.Models;
 
     [Route("api/[controller]")]
@@ -43,6 +44,24 @@
             return (await FetchOrdersAsync())
                 .Where(o => o.Name == name)
                 .ToList();
+        }
+
+        [HttpPost]
+        public async Task Put([FromBody]Order order)
+        {
+            Table table = Table.LoadTable(Client, TABLE_NAME);
+
+            var json = JsonConvert.SerializeObject(order, new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver()
+                {
+                    NamingStrategy = new CamelCaseNamingStrategy()
+                }
+            });
+
+            await table.PutItemAsync(Document.FromJson(json));
+
+            Cache.Remove(ORDERS_CACHE_KEY);
         }
 
         private async Task<List<Order>> FetchOrdersAsync()
