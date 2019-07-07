@@ -33,17 +33,30 @@
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Order>>> Get()
+        public async Task<ActionResult<IEnumerable<Order>>> Get([FromQuery]string name)
         {
-            return await FetchOrdersAsync();
+            var orders = await FetchOrdersAsync();
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                orders = orders.Where(o => o.Name == name);
+            }
+
+            return Ok(orders.ToList());
         }
 
-        [HttpGet("{name}")]
-        public async Task<ActionResult<object>> GetByName(string name)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Order>> GetById([FromRoute]string id)
         {
-            return (await FetchOrdersAsync())
-                .Where(o => o.Name == name)
-                .ToList();
+            var order = (await FetchOrdersAsync())
+                .FirstOrDefault(o => o.Id == id);
+
+            if (order == default)
+            {
+                return NotFound();
+            }
+
+            return Ok(order);
         }
 
         [HttpPost]
@@ -64,7 +77,7 @@
             Cache.Remove(ORDERS_CACHE_KEY);
         }
 
-        private async Task<List<Order>> FetchOrdersAsync()
+        private async Task<IEnumerable<Order>> FetchOrdersAsync()
         {
             var cacheHit = true;
             var sw = new Stopwatch();
@@ -99,7 +112,7 @@
 
                         entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(1);
 
-                        return orders = orderDocuments
+                        return orderDocuments
                             .Select(d => JsonConvert.DeserializeObject<Order>(d.ToJson()))
                             .ToList();
                     });
