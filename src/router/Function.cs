@@ -1,8 +1,10 @@
 using Amazon.DynamoDBv2.Model;
+using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.DynamoDBEvents;
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,22 +34,23 @@ namespace ServerlessPizza.Router
         {
             foreach (var record in dynamoEvent.Records)
             {
+                var json = JsonConvert.SerializeObject(record);
+
                 List<AttributeValue> events = record.Dynamodb.NewImage["events"].L;
-                string orderId = record.Dynamodb.NewImage["id"].S;
 
                 if (events.Count == 0)
                 {
-                    SendSQSMessage("serverless-pizza-prep", orderId).Wait();
+                    SendSQSMessage("serverless-pizza-prep", json).Wait();
                 }
                 else
                 {
                     switch (events.Last().M["type"].S)
                     {
                         case "prep":
-                            SendSQSMessage("serverless-pizza-cook", orderId).Wait();
+                            SendSQSMessage("serverless-pizza-cook", json).Wait();
                             break;
                         case "cook":
-                            SendSQSMessage("serverless-pizza-finish", orderId).Wait();
+                            SendSQSMessage("serverless-pizza-finish", json).Wait();
                             break;
                         case "finish":
                             break;
