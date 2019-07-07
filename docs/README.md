@@ -6,11 +6,9 @@
     "name": "customer name",
     "placed": "<timestamp>"
     "details": {
-        "crust": { 
-            "thin|regular|stuffed": {
-                "small|medium|large|jumbo": "<cook time>"
-            }
-        },
+        "size": "<size>",
+        "type": "<type>",
+        "cookTime": "<cook time in seconds>",
         "toppings": [
             "cheese|pepperoni|sausage|whatever"
         ]
@@ -18,6 +16,8 @@
     "events": []
 }
 ```
+
+
 
 ## Event Model
 
