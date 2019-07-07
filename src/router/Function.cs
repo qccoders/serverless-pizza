@@ -3,8 +3,10 @@ using Amazon.Lambda.Core;
 using Amazon.Lambda.DynamoDBEvents;
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
@@ -13,14 +15,17 @@ namespace router
 {
     public class Function
     {
-        // Credentials are pulled from environment variables auto-populated by Lambda
+        // Credentials, region are pulled from instance information
         private AmazonSQSClient _client = new AmazonSQSClient();
 
-        private void SendSQSMessage(string functionName, string payload)
+        private Task<SendMessageResponse> SendSQSMessage(string functionName, string payload)
         {
-            var url = $"https://sqs.us-east-2.amazonaws.com/551524640723/{functionName}";
-            var request =  new SendMessageRequest(url, payload);
-            _client.SendMessageAsync(request).Wait();
+            // Environment variables set in Lambda console
+            string prefix = Environment.GetEnvironmentVariable("SqsUrlPrefix");
+            string url = prefix + functionName;
+
+            SendMessageRequest request =  new SendMessageRequest(url, payload);
+            return _client.SendMessageAsync(request);
         }
 
         public void FunctionHandler(DynamoDBEvent dynamoEvent, ILambdaContext context)
@@ -34,17 +39,17 @@ namespace router
 
                 if (events.Count == 0)
                 {
-                    SendSQSMessage("ServerlessPizzaPrep", orderId);
+                    SendSQSMessage("ServerlessPizzaPrep", orderId).Wait();
                 }
                 else
                 {
                     switch (events.Last().M["type"].S)
                     {
                         case "prep":
-                            SendSQSMessage("ServerlessPizzaCook", orderId);
+                            SendSQSMessage("ServerlessPizzaCook", orderId).Wait();
                             break;
                         case "cook":
-                            SendSQSMessage("ServerlessPizzaFinish", orderId);
+                            SendSQSMessage("ServerlessPizzaFinish", orderId).Wait();
                             break;
                         case "finish":
                             LambdaLogger.Log($"Order {orderId} complete.");
