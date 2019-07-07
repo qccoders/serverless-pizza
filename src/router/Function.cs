@@ -1,7 +1,9 @@
+using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.DynamoDBEvents;
-using Amazon.Lambda;
-using Amazon.Lambda.Model;
+using Amazon.SQS;
+using Amazon.SQS.Model;
+using System.Collections.Generic;
 using System.Linq;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
@@ -11,22 +13,14 @@ namespace router
 {
     public class Function
     {
-        // No arguments; credentials and region are pulled from environment variables auto-populated by Lambda
-        private AmazonLambdaClient _client = new AmazonLambdaClient();
+        // Credentials are pulled from environment variables auto-populated by Lambda
+        private AmazonSQSClient _client = new AmazonSQSClient();
 
-        private void Invoke(string functionName, DynamoDBEvent.DynamodbStreamRecord record)
+        private void SendSQSMessage(string functionName, string payload)
         {
-            // TODO: figure out why Lambda invocation doesn't work
-            var request = new InvokeRequest
-            {
-                FunctionName = functionName,
-                InvocationType = "Event",           // Execute Lambda asynchronously
-                Payload = record.ToString(),
-            };
-
-            var response = _client.InvokeAsync(request);
-            LambdaLogger.Log(response.ToString());
-            LambdaLogger.Log($"Invoked {functionName} Lambda");
+            var url = $"https://sqs.us-east-2.amazonaws.com/551524640723/{functionName}";
+            var request =  new SendMessageRequest(url, payload);
+            _client.SendMessageAsync(request).Wait();
         }
 
         public void FunctionHandler(DynamoDBEvent dynamoEvent, ILambdaContext context)
@@ -35,25 +29,25 @@ namespace router
 
             foreach (var record in dynamoEvent.Records)
             {
-                var events = record.Dynamodb.NewImage["events"].L;
+                List<AttributeValue> events = record.Dynamodb.NewImage["events"].L;
+                string orderId = record.Dynamodb.NewImage["id"].S;
 
                 if (events.Count == 0)
                 {
-                    Invoke("ServerlessPizzaPrep", record);
+                    SendSQSMessage("ServerlessPizzaPrep", orderId);
                 }
                 else
                 {
                     switch (events.Last().M["type"].S)
                     {
                         case "prep":
-                            Invoke("ServerlessPizzaCook", record);
+                            SendSQSMessage("ServerlessPizzaCook", orderId);
                             break;
                         case "cook":
-                            Invoke("ServerlessPizzaFinish", record);
+                            SendSQSMessage("ServerlessPizzaFinish", orderId);
                             break;
                         case "finish":
-                            string id = record.Dynamodb.NewImage["id"].S;
-                            LambdaLogger.Log($"Order {id} complete.");
+                            LambdaLogger.Log($"Order {orderId} complete.");
                             break;
                     }
                 }
