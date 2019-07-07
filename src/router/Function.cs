@@ -1,5 +1,4 @@
 using Amazon.DynamoDBv2.Model;
-using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.DynamoDBEvents;
 using Amazon.SQS;
@@ -32,9 +31,9 @@ namespace ServerlessPizza.Router
 
         public void FunctionHandler(DynamoDBEvent dynamoEvent, ILambdaContext context)
         {
-            foreach (var record in dynamoEvent.Records)
+            foreach (DynamoDBEvent.DynamodbStreamRecord record in dynamoEvent.Records)
             {
-                var json = JsonConvert.SerializeObject(record);
+                string json = JsonConvert.SerializeObject(record);
 
                 List<AttributeValue> events = record.Dynamodb.NewImage["events"].L;
 
