@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
 
-namespace router
+namespace ServerlessPizza.Router
 {
     public class Function
     {
@@ -30,8 +30,6 @@ namespace router
 
         public void FunctionHandler(DynamoDBEvent dynamoEvent, ILambdaContext context)
         {
-            LambdaLogger.Log($"Beginning to process {dynamoEvent.Records.Count} records...");
-
             foreach (var record in dynamoEvent.Records)
             {
                 List<AttributeValue> events = record.Dynamodb.NewImage["events"].L;
@@ -52,13 +50,10 @@ namespace router
                             SendSQSMessage("serverless-pizza-finish", orderId).Wait();
                             break;
                         case "finish":
-                            LambdaLogger.Log($"Order {orderId} complete.");
                             break;
                     }
                 }
             }
-
-            LambdaLogger.Log("Stream processing complete.");
         }
     }
 }
