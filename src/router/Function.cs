@@ -39,17 +39,17 @@ namespace router
 
                 if (events.Count == 0)
                 {
-                    SendSQSMessage("ServerlessPizzaPrep", orderId).Wait();
+                    SendSQSMessage("serverless-pizza-prep", orderId).Wait();
                 }
                 else
                 {
                     switch (events.Last().M["type"].S)
                     {
                         case "prep":
-                            SendSQSMessage("ServerlessPizzaCook", orderId).Wait();
+                            SendSQSMessage("serverless-pizza-cook", orderId).Wait();
                             break;
                         case "cook":
-                            SendSQSMessage("ServerlessPizzaFinish", orderId).Wait();
+                            SendSQSMessage("serverless-pizza-finish", orderId).Wait();
                             break;
                         case "finish":
                             LambdaLogger.Log($"Order {orderId} complete.");
