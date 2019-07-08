@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
+import logo from './logo.png';
+
 import OrderForm from './Components/OrderForm';
 import OrderTracker from './Components/OrderTracker';
 import axios from 'axios';
@@ -54,6 +56,7 @@ class App extends Component {
     render = () => {
         return (
             <div className="App">
+                <img className='logo' alt='logo' src={logo}/>
                 {this.state.orderId ? 
                     <OrderTracker 
                         order={this.state.order} 
