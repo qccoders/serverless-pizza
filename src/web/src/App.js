@@ -15,6 +15,7 @@ class App extends Component {
     };
 
     componentDidMount = () => {
+        this.refresh();
         setInterval(this.refresh, 2500);
     };
 
