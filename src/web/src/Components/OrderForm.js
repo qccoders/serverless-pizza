@@ -6,13 +6,14 @@ import {
     Button,
     Dropdown,
     Label,
-    Icon
+    Icon,
+    Divider
 } from 'semantic-ui-react';
 
 const initialState = {
     name: undefined,
     size: undefined,
-    type: undefined,
+    crust: undefined,
     toppings: []
 };
 
@@ -72,7 +73,9 @@ class OrderForm extends Component {
             placed: new Date().toISOString()
         }
 
-        this.props.placeOrder(order);
+        this.props.placeOrder(order).then(r => {
+            //this.setState({ ...initialState, toppings: [] })
+        });
     }
    
     setName = (e, { name, value }) => {
@@ -81,6 +84,7 @@ class OrderForm extends Component {
 
     render() {
         let { toppings } = this.state;
+        console.log(this.state);
 
         return (
             <Segment className='form'>
@@ -135,7 +139,16 @@ class OrderForm extends Component {
                             />
                         </Form.Field>
                     </Form.Field>
-                    <Button onClick={this.placeOrder} type='submit'>Submit</Button>
+                    <Divider/>
+                    <Button 
+                        onClick={this.placeOrder} 
+                        primary 
+                        fluid 
+                        size='huge' 
+                        type='submit'
+                    >
+                        Place Order
+                    </Button>
                 </Form>
             </Segment>
         );
