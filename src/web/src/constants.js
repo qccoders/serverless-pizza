@@ -1,0 +1,1 @@
+export const ROOTURL = "https://f1464whqu1.execute-api.us-east-1.amazonaws.com/prod/api";

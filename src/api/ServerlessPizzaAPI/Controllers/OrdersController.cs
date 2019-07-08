@@ -11,6 +11,7 @@
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Caching.Memory;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
     using Newtonsoft.Json.Serialization;
     using ServerlessPizzaAPI.Models;
 
@@ -66,6 +67,10 @@
 
             var json = JsonConvert.SerializeObject(order, new JsonSerializerSettings
             {
+                Converters =
+                {
+                    new StringEnumConverter()
+                },
                 ContractResolver = new DefaultContractResolver()
                 {
                     NamingStrategy = new CamelCaseNamingStrategy()

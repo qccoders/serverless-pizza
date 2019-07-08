@@ -1,0 +1,27 @@
+.body {
+    background-color: crimson;
+}
+
+.App {
+    text-align: center;
+    padding-top: 40px;
+}
+
+.tracker {
+    text-align: left;
+}
+
+.forgetButton {
+    margin: 0 auto;
+    background-color: crimson !important;
+}
+
+.form {
+    width: 475px;
+    margin: 0 auto !important;
+    text-align: left;
+}
+
+.ingredientButton {
+    width: 445px;
+}
