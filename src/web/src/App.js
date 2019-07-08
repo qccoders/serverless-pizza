@@ -32,11 +32,14 @@ class App extends Component {
     };
 
     placeOrder = (order) => {
-        axios.post('/orders', order)
-        .then(response => {
-            sessionStorage.setItem(ORDERIDKEY, order.id)
+        return new Promise((resolve, reject) => {
+            axios.post('/orders', order)
+            .then(response => {
+                sessionStorage.setItem(ORDERIDKEY, order.id);
+                resolve(response.data);
+            })
+            .catch(err => reject(err));
         })
-        .catch(err => console.log(err));
     };
 
     getOrder = (id) => {
