@@ -52,6 +52,9 @@ namespace ServerlessPizza.Router
                             SendSQSMessage("serverless-pizza-finish", json).Wait();
                             break;
                         case "finish":
+                            SendSQSMessage("serverless-pizza-deliver", json).Wait();
+                            break;
+                        case "deliver":
                             break;
                     }
                 }
