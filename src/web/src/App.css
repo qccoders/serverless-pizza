@@ -1,22 +1,32 @@
 .body {
-    background-color: crimson;
+    /* background-color: crimson; */
+    background-image:
+    radial-gradient(
+        circle at 50% 400px,
+      crimson,
+      rgb(129, 11, 35)
+    );
 }
 
 .App {
     text-align: center;
     padding-top: 40px;
+    padding-bottom: 40px;
 }
 
 .tracker {
     text-align: left;
+    box-shadow: 0 5px 30px 10px rgba(35, 35, 35, 0.25) !important;
 }
 
 .forgetButton {
-    margin: 0 auto;
-    background-color: crimson !important;
+    margin-top: 25px !important;
+    margin-left: auto;
+    margin-right: auto;
+    cursor: pointer;
 }
 
-.form {
+.form, .status {
     width: 475px;
     margin: 0 auto !important;
     text-align: left;
@@ -24,4 +34,38 @@
 
 .ingredientButton {
     width: 445px;
+}
+
+.logo {
+    margin-bottom: 30px;
+}
+
+.ui.segment {
+    box-shadow: 0 5px 30px 10px rgba(35, 35, 35, 0.25) !important
+}
+
+.queueTitle {
+    font-weight: bold;
+    font-size: 24px !important;
+}
+
+.queue {
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+    margin-bottom: -20px !important;
+    margin-top: -20px !important;
+    background-color: #c0c0c0 !important;
+}
+
+.status {
+    padding-top: 20px;
+}
+
+.step {
+    z-index: 100;
+}
+
+.pizzaList {
+    margin-left: 20px !important;
+    margin-right: 20px !important;
 }
