@@ -7,6 +7,9 @@ import {
     Segment
 } from 'semantic-ui-react';
 
+import QueueSegment from './QueueSegment';
+import StepSegment from './StepSegment';
+
 class Manager extends Component {
     getStateFromEvents = (events) => {
         let ev = events.reduce((dict, e) => {
@@ -39,34 +42,14 @@ class Manager extends Component {
 
         return (
             <div className='status'>
-                <Segment>
-                    <Header as='h2'>
-                        <Icon name='signing' />
-                        <Header.Content>Prep</Header.Content>
-                    </Header>
-                    <span>Count: {orders.prep && orders.prep.length} Queued: {orders.prepQueued && orders.prepQueued.length}</span>
-                </Segment>
-                <Segment>
-                    <Header as='h2'>
-                        <Icon name='time' />
-                        <Header.Content>Cook</Header.Content>
-                    </Header>
-                    <span>Count: {orders.cook && orders.cook.length} Queued: {orders.cookQueued && orders.cookQueued.length}</span>
-                </Segment>
-                <Segment>
-                    <Header as='h2'>
-                        <Icon name='chart pie' />
-                        <Header.Content>Finish</Header.Content>
-                    </Header>
-                    <span>Count: {orders.finish && orders.finish.length} Queued: {orders.finishQueued && orders.finishQueued.length}</span>
-                </Segment>
-                <Segment>
-                    <Header as='h2'>
-                        <Icon name='shipping fast' />
-                        <Header.Content>Delivery</Header.Content>
-                    </Header>
-                    <span>Count: {orders.delivery && orders.delivery.length} Queued: {orders.deliveryQueued && orders.deliveryQueued.length}</span>
-                </Segment>
+                <QueueSegment name='Prep' orders={orders.prepQueued}/>
+                <StepSegment name='Prep' iconName='signing' orders={orders.prep} />
+                <QueueSegment name='Cook' orders={orders.cookQueued}/>
+                <StepSegment name='Cook' iconName='time' orders={orders.cook} />
+                <QueueSegment name='Finish' orders={orders.finishQueued}/>
+                <StepSegment name='Finish' iconName='chart pie' orders={orders.finish} />
+                <QueueSegment name='Delivery' orders={orders.deliveryQueued}/>
+                <StepSegment name='Delivery' iconName='shipping fast' orders={orders.delivery} />
                 <Segment>
                     <Header as='h2'>
                         <Icon name='checkmark' />
