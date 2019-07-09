@@ -84,7 +84,7 @@ class OrderForm extends Component {
 
     render() {
         let { toppings } = this.state;
-        console.log(this.state);
+        //console.log(this.state);
 
         return (
             <Segment className='form'>

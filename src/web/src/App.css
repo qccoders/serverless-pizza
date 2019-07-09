@@ -1,11 +1,11 @@
 .body {
-    background-color: crimson;
-    /* background-image:
+    /* background-color: crimson; */
+    background-image:
     radial-gradient(
         circle at 50% 400px,
       crimson,
-      rgb(105, 20, 37)
-    ); */
+      rgb(129, 11, 35)
+    );
 }
 
 .App {
@@ -16,17 +16,17 @@
 
 .tracker {
     text-align: left;
-    box-shadow: 0 10px 20px 10px rgba(35, 35, 35, 0.25) !important;
+    box-shadow: 0 5px 30px 10px rgba(35, 35, 35, 0.25) !important;
 }
 
 .forgetButton {
-    margin-top: 10px !important;
+    margin-top: 25px !important;
     margin-left: auto;
     margin-right: auto;
-    background-color: crimson !important;
+    cursor: pointer;
 }
 
-.form {
+.form, .status {
     width: 475px;
     margin: 0 auto !important;
     text-align: left;
@@ -41,5 +41,5 @@
 }
 
 .ui.segment {
-    box-shadow: 0 10px 20px 10px rgba(35, 35, 35, 0.25) !important
+    box-shadow: 0 5px 30px 10px rgba(35, 35, 35, 0.25) !important
 }

@@ -3,8 +3,7 @@ import React, { Component } from 'react';
 import {
     Icon,
     Step,
-    Loader,
-    Button
+    Loader
 } from 'semantic-ui-react';
 
 const initialState = {};
@@ -89,13 +88,12 @@ class OrderTracker extends Component {
                     </Step>
                 </Step.Group>
                 <br/>
-                <Button 
+                <Icon 
                     className='forgetButton' 
+                    name='trash' 
+                    size='big'
                     onClick={this.props.forgetOrder}
-                    size='large'
-                >
-                    Forget Order
-                </Button>
+                />
             </div>
         );
     }
