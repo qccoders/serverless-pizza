@@ -1,65 +1,64 @@
+using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.DynamoDBEvents;
-using Amazon.Lambda;
-using Amazon.Lambda.Model;
+using Amazon.SQS;
+using Amazon.SQS.Model;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
 
-namespace router
+namespace ServerlessPizza.Router
 {
     public class Function
     {
-        // No arguments; credentials and region are pulled from environment variables auto-populated by Lambda
-        private AmazonLambdaClient _client = new AmazonLambdaClient();
+        // Credentials, region are pulled from instance information
+        private AmazonSQSClient _client = new AmazonSQSClient();
 
-        private void Invoke(string functionName, DynamoDBEvent.DynamodbStreamRecord record)
+        private Task<SendMessageResponse> SendSQSMessage(string functionName, string payload)
         {
-            // TODO: figure out why Lambda invocation doesn't work
-            var request = new InvokeRequest
-            {
-                FunctionName = functionName,
-                InvocationType = "Event",           // Execute Lambda asynchronously
-                Payload = record.ToString(),
-            };
+            // Environment variables set in Lambda console
+            string prefix = Environment.GetEnvironmentVariable("SqsUrlPrefix");
+            string url = prefix + functionName;
 
-            var response = _client.InvokeAsync(request);
-            LambdaLogger.Log(response.ToString());
-            LambdaLogger.Log($"Invoked {functionName} Lambda");
+            SendMessageRequest request =  new SendMessageRequest(url, payload);
+            return _client.SendMessageAsync(request);
         }
 
         public void FunctionHandler(DynamoDBEvent dynamoEvent, ILambdaContext context)
         {
-            LambdaLogger.Log($"Beginning to process {dynamoEvent.Records.Count} records...");
-
-            foreach (var record in dynamoEvent.Records)
+            foreach (DynamoDBEvent.DynamodbStreamRecord record in dynamoEvent.Records)
             {
-                var events = record.Dynamodb.NewImage["events"].L;
+                string json = JsonConvert.SerializeObject(record);
+
+                List<AttributeValue> events = record.Dynamodb.NewImage["events"].L;
 
                 if (events.Count == 0)
                 {
-                    Invoke("ServerlessPizzaPrep", record);
+                    SendSQSMessage("serverless-pizza-prep", json).Wait();
                 }
                 else
                 {
                     switch (events.Last().M["type"].S)
                     {
                         case "prep":
-                            Invoke("ServerlessPizzaCook", record);
+                            SendSQSMessage("serverless-pizza-cook", json).Wait();
                             break;
                         case "cook":
-                            Invoke("ServerlessPizzaFinish", record);
+                            SendSQSMessage("serverless-pizza-finish", json).Wait();
                             break;
                         case "finish":
-                            string id = record.Dynamodb.NewImage["id"].S;
-                            LambdaLogger.Log($"Order {id} complete.");
+                            SendSQSMessage("serverless-pizza-deliver", json).Wait();
+                            break;
+                        case "deliver":
                             break;
                     }
                 }
             }
-
-            LambdaLogger.Log("Stream processing complete.");
         }
     }
 }
