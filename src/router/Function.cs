@@ -35,7 +35,17 @@ namespace ServerlessPizza.Router
             {
                 string json = JsonConvert.SerializeObject(record);
 
-                List<AttributeValue> events = record.Dynamodb.NewImage["events"].L;
+                List<AttributeValue> events;
+
+                try
+                {
+                    events = record.Dynamodb.NewImage["events"].L;
+                }
+                catch (Exception)
+                {
+                    return;
+                }
+
 
                 if (events.Count == 0)
                 {
