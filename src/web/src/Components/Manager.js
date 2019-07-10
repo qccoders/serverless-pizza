@@ -1,14 +1,12 @@
 import React, { Component } from 'react';
 
 import {
-    Icon,
     Loader,
-    Header,
-    Segment
 } from 'semantic-ui-react';
 
 import QueueSegment from './QueueSegment';
 import StepSegment from './StepSegment';
+import DoneSegment from './DoneSegment';
 
 class Manager extends Component {
     getStateFromEvents = (events) => {
@@ -50,13 +48,7 @@ class Manager extends Component {
                 <StepSegment name='Finish' iconName='chart pie' orders={orders.finish} />
                 <QueueSegment name='Delivery' orders={orders.deliveryQueued}/>
                 <StepSegment name='Delivery' iconName='shipping fast' orders={orders.delivery} />
-                <Segment>
-                    <Header as='h2'>
-                        <Icon name='checkmark' />
-                        <Header.Content>Done</Header.Content>
-                    </Header>
-                    <span>Count: {orders.done && orders.done.length}</span>
-                </Segment>
+                <DoneSegment orders={orders.done}/>
             </div>
         );
     }
