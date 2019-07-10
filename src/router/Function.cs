@@ -19,86 +19,91 @@ namespace ServerlessPizza.Router
         // Credentials, region are pulled from instance information
         private AmazonSQSClient _client = new AmazonSQSClient();
 
-        private Task<SendMessageResponse> SendSQSMessage(string functionName, string payload)
-        {
-            // Environment variables set in Lambda console
-            string prefix = Environment.GetEnvironmentVariable("SqsUrlPrefix");
-            string url = prefix + functionName;
-
-            SendMessageRequest request =  new SendMessageRequest(url, payload);
-            return _client.SendMessageAsync(request);
-        }
-
         public void FunctionHandler(DynamoDBEvent dynamoEvent, ILambdaContext context)
         {
             Console.WriteLine($"Incoming Event: {JsonConvert.SerializeObject(dynamoEvent)}");
 
-            foreach (DynamoDBEvent.DynamodbStreamRecord record in dynamoEvent.Records)
+            // Process records and send SQS messages in parallel
+            IEnumerable<Task<SendMessageResponse>> tasks = dynamoEvent.Records.Select(r => ProcessRecord(r));
+
+            // Wait for everything to finish, then exit
+            Task.WhenAll(tasks).Wait();
+        }
+
+        private async Task<SendMessageResponse> ProcessRecord(DynamoDBEvent.DynamodbStreamRecord record)
+        {
+            string json = JsonConvert.SerializeObject(record);
+            List<AttributeValue> events;
+
+            // Be prepared for anomalous records
+            try
             {
-                string json = JsonConvert.SerializeObject(record);
-                Console.WriteLine($"Record: {json}");
+                events = record.Dynamodb.NewImage["events"].L;
+            }
+            catch (Exception)
+            {
+                Console.WriteLine($"Invalid record schema: {json}");
+                return default;
+            }
 
-                List<AttributeValue> events;
+            // If there aren't any events yet, send the order to Prep
+            if (events.Count == 0)
+            {
+                return await SendSQSMessage("serverless-pizza-prep", json);
+            }
 
+            // Get the type number of an event
+            // A function delegate is used here, but a regular method works just the same
+            Func<AttributeValue, int> getTypeNumber = e =>
+            {
                 try
                 {
-                    events = record.Dynamodb.NewImage["events"].L;
+                    string type = e.M["type"].N;
+                    return int.Parse(type);
                 }
                 catch (Exception)
                 {
-                    return;
+                    return 0;
                 }
+            };
 
+            // List items in a DynamoDB record are not sorted; find the event with the largest type number
+            var lastEvent = events.OrderBy(e => getTypeNumber(e)).Last();
 
-                if (events.Count == 0)
-                {
-                    Console.WriteLine($"Sending message to Prep queue");
-                    SendSQSMessage("serverless-pizza-prep", json).Wait();
-                    return;
-                }
-
-                Func<AttributeValue, int> getTypeNumber = e =>
-                {
-                    try
-                    {
-                        string type = e.M["type"].N;
-                        return int.Parse(type);
-                    }
-                    catch (Exception)
-                    {
-                        return 0;
-                    }
-                };
-
-                var lastEvent = events.OrderBy(e => getTypeNumber(e)).Last();
-
-                if (lastEvent.M["end"].S == null || lastEvent.M["end"].S.Trim() == "")
-                {
-                    return;
-                }
-
-                switch (getTypeNumber(lastEvent))
-                {
-                    case 0:
-                        Console.WriteLine($"Unknown event: {JsonConvert.SerializeObject(lastEvent)}");
-                        break;
-                    case 1: // Prep
-                        Console.WriteLine("Sending message to Cook queue");
-                        SendSQSMessage("serverless-pizza-cook", json).Wait();
-                        break;
-                    case 2: // Cook
-                        Console.WriteLine("Sending message to Finish queue");
-                        SendSQSMessage("serverless-pizza-finish", json).Wait();
-                        break;
-                    case 3: // Finish
-                        Console.WriteLine("Sending message to Deliver queue");
-                        SendSQSMessage("serverless-pizza-deliver", json).Wait();
-                        break;
-                    case 4: // Deliver
-                        Console.WriteLine("Order delivered, nothing more to do.");
-                        break;
-                }
+            // If the event is still in progress, don't send a message
+            if (lastEvent.M["end"].S == null || lastEvent.M["end"].S.Trim() == "")
+            {
+                return default;
             }
+
+            // Using early return enhances readability and keeps this switch statement at a reasonable level of indentation
+            switch (getTypeNumber(lastEvent))
+            {
+                case 1: // Prep
+                    return await SendSQSMessage("serverless-pizza-cook", json);
+                case 2: // Cook
+                    return await SendSQSMessage("serverless-pizza-finish", json);
+                case 3: // Finish
+                    return await SendSQSMessage("serverless-pizza-deliver", json);
+                case 4: // Deliver
+                    Console.WriteLine("Order delivered, nothing more to do.");
+                    return default;
+                default:
+                    Console.WriteLine($"Unknown event: {JsonConvert.SerializeObject(lastEvent)}");
+                    return default;
+            }
+        }
+
+        private Task<SendMessageResponse> SendSQSMessage(string functionName, string payload)
+        {
+            Console.WriteLine($"Sending message to '{functionName}' queue");
+
+            // Environment variable set in Lambda console
+            string prefix = Environment.GetEnvironmentVariable("SqsUrlPrefix");
+            string url = prefix + functionName;
+
+            SendMessageRequest request = new SendMessageRequest(url, payload);
+            return _client.SendMessageAsync(request);
         }
     }
 }
