@@ -32,7 +32,7 @@ namespace ServerlessPizza.Router
 
         private async Task<SendMessageResponse> ProcessRecord(DynamoDBEvent.DynamodbStreamRecord record)
         {
-            string json = JsonConvert.SerializeObject(record);
+            string json = JsonConvert.SerializeObject(record.Dynamodb.NewImage);
             List<AttributeValue> events;
 
             // Be prepared for anomalous records
