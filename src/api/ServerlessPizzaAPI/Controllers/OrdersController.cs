@@ -103,7 +103,8 @@
 
                         var config = new ScanOperationConfig()
                         {
-                            Select = SelectValues.AllAttributes
+                            Select = SelectValues.AllAttributes,
+                            ConsistentRead = true,
                         };
 
                         var search = table.Scan(config);
