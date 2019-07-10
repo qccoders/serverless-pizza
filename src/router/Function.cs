@@ -8,6 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Amazon.DynamoDBv2.DocumentModel;
+using ServerlessPizzaAPI.Models;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
@@ -31,30 +33,51 @@ namespace ServerlessPizza.Router
 
         public void FunctionHandler(DynamoDBEvent dynamoEvent, ILambdaContext context)
         {
+            Console.WriteLine($"Incoming Event: {JsonConvert.SerializeObject(dynamoEvent)}");
+
             foreach (DynamoDBEvent.DynamodbStreamRecord record in dynamoEvent.Records)
             {
-                string json = JsonConvert.SerializeObject(record);
+                string json = Document.FromAttributeMap(record.Dynamodb.NewImage).ToJson();
+                Console.WriteLine($"Record: {json}");
 
-                List<AttributeValue> events = record.Dynamodb.NewImage["events"].L;
+                var order = JsonConvert.DeserializeObject<Order>(json);
 
-                if (events.Count == 0)
+                if (order.Events == null || !order.Events.Any())
                 {
+                    Console.WriteLine($"Sending message to Prep queue");
                     SendSQSMessage("serverless-pizza-prep", json).Wait();
                 }
                 else
                 {
-                    switch (events.Last().M["type"].S)
+                    var orderedEvents = order.Events.OrderBy(e => (int)e.Type);
+
+                    Console.WriteLine($"Events: {string.Join(", ", orderedEvents.Select(e => e.Type))}");
+
+                    var lastEvent = orderedEvents.Last();
+
+                    Console.WriteLine($"Last event: {JsonConvert.SerializeObject(lastEvent)}");
+
+                    if (lastEvent.End == null)
                     {
-                        case "prep":
+                        Console.WriteLine($"Last event end is null, nothing to route.");
+                    }
+
+                    switch (lastEvent.Type)
+                    {
+                        case EventType.Prep:
+                            Console.WriteLine($"Sending message to Cook queue");
                             SendSQSMessage("serverless-pizza-cook", json).Wait();
                             break;
-                        case "cook":
+                        case EventType.Cook:
+                            Console.WriteLine($"Sending message to Finish queue");
                             SendSQSMessage("serverless-pizza-finish", json).Wait();
                             break;
-                        case "finish":
+                        case EventType.Finish:
+                            Console.WriteLine($"Sending message to Deliver queue");
                             SendSQSMessage("serverless-pizza-deliver", json).Wait();
                             break;
-                        case "deliver":
+                        case EventType.Delivery:
+                            Console.WriteLine($"Order delivered, nothing more to do.");
                             break;
                     }
                 }
