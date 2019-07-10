@@ -1,3 +1,4 @@
+using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.DynamoDBEvents;
@@ -32,7 +33,7 @@ namespace ServerlessPizza.Router
 
         private async Task<SendMessageResponse> ProcessRecord(DynamoDBEvent.DynamodbStreamRecord record)
         {
-            string json = JsonConvert.SerializeObject(record.Dynamodb.NewImage);
+            string json = Document.FromAttributeMap(record.Dynamodb.NewImage).ToJson();
             List<AttributeValue> events;
 
             // Be prepared for anomalous records
@@ -58,8 +59,20 @@ namespace ServerlessPizza.Router
             {
                 try
                 {
-                    string type = e.M["type"].N;
-                    return int.Parse(type);
+                    string type = e.M["type"].S;
+                    switch (type)
+                    {
+                        case "Prep":
+                            return 1;
+                        case "Cook":
+                            return 2;
+                        case "Finish":
+                            return 3;
+                        case "Delivery":
+                            return 4;
+                        default:
+                            return 0;
+                    }
                 }
                 catch (Exception)
                 {
@@ -71,7 +84,7 @@ namespace ServerlessPizza.Router
             var lastEvent = events.OrderBy(e => getTypeNumber(e)).Last();
 
             // If the event is still in progress, don't send a message
-            if (lastEvent.M["end"].S == null || lastEvent.M["end"].S.Trim() == "")
+            if (!lastEvent.M.ContainsKey("end"))
             {
                 return default;
             }
@@ -85,7 +98,7 @@ namespace ServerlessPizza.Router
                     return await SendSQSMessage("serverless-pizza-finish", json);
                 case 3: // Finish
                     return await SendSQSMessage("serverless-pizza-deliver", json);
-                case 4: // Deliver
+                case 4: // Delivery
                     Console.WriteLine("Order delivered, nothing more to do.");
                     return default;
                 default:
