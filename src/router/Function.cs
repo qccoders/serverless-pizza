@@ -31,9 +31,12 @@ namespace ServerlessPizza.Router
 
         public void FunctionHandler(DynamoDBEvent dynamoEvent, ILambdaContext context)
         {
+            Console.WriteLine($"Incoming Event: {JsonConvert.SerializeObject(dynamoEvent)}");
+
             foreach (DynamoDBEvent.DynamodbStreamRecord record in dynamoEvent.Records)
             {
                 string json = JsonConvert.SerializeObject(record);
+                Console.WriteLine($"Record: {json}");
 
                 List<AttributeValue> events;
 
@@ -49,33 +52,51 @@ namespace ServerlessPizza.Router
 
                 if (events.Count == 0)
                 {
+                    Console.WriteLine($"Sending message to Prep queue");
                     SendSQSMessage("serverless-pizza-prep", json).Wait();
                     return;
                 }
 
-                var lastEvent = events.Last();
+                Func<AttributeValue, int> getTypeNumber = e =>
+                {
+                    try
+                    {
+                        string type = e.M["type"].N;
+                        return int.Parse(type);
+                    }
+                    catch (Exception)
+                    {
+                        return 0;
+                    }
+                };
+
+                var lastEvent = events.OrderBy(e => getTypeNumber(e)).Last();
 
                 if (lastEvent.M["end"].S == null || lastEvent.M["end"].S.Trim() == "")
                 {
                     return;
                 }
 
-                else
+                switch (getTypeNumber(lastEvent))
                 {
-                    switch (events.Last().M["type"].S)
-                    {
-                        case "prep":
-                            SendSQSMessage("serverless-pizza-cook", json).Wait();
-                            break;
-                        case "cook":
-                            SendSQSMessage("serverless-pizza-finish", json).Wait();
-                            break;
-                        case "finish":
-                            SendSQSMessage("serverless-pizza-deliver", json).Wait();
-                            break;
-                        case "deliver":
-                            break;
-                    }
+                    case 0:
+                        Console.WriteLine($"Unknown event: {JsonConvert.SerializeObject(lastEvent)}");
+                        break;
+                    case 1: // Prep
+                        Console.WriteLine("Sending message to Cook queue");
+                        SendSQSMessage("serverless-pizza-cook", json).Wait();
+                        break;
+                    case 2: // Cook
+                        Console.WriteLine("Sending message to Finish queue");
+                        SendSQSMessage("serverless-pizza-finish", json).Wait();
+                        break;
+                    case 3: // Finish
+                        Console.WriteLine("Sending message to Deliver queue");
+                        SendSQSMessage("serverless-pizza-deliver", json).Wait();
+                        break;
+                    case 4: // Deliver
+                        Console.WriteLine("Order delivered, nothing more to do.");
+                        break;
                 }
             }
         }
