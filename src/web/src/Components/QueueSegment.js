@@ -9,7 +9,7 @@ import {
 import Pizza from './Pizza';
 
 class QueueSegment extends Component {
-    state = { expanded: false }
+    state = { expanded: true }
 
     render() {
         return (
@@ -22,7 +22,8 @@ class QueueSegment extends Component {
                         onClick={() => this.setState({ expanded: !this.state.expanded })}
                     >
                         <Icon name='dropdown' />
-                        {this.props.name} Queue ({(this.props.orders && this.props.orders.length) || 0})
+                            <span>{this.props.name} Queue</span>
+                            <span style={{ float: 'right', marginRight: '20px'}}>{(this.props.orders && this.props.orders.length) || 0}</span>
                     </Accordion.Title>
                     <Accordion.Content active={this.state.expanded}>
                         {this.props.orders && <List className='pizzaList' divided relaxed>
