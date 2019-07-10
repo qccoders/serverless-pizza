@@ -6,6 +6,10 @@
       crimson,
       rgb(129, 11, 35)
     );
+
+    margin: 0;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
 }
 
 .App {
