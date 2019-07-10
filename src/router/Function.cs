@@ -60,6 +60,7 @@ namespace ServerlessPizza.Router
                     if (lastEvent.End == null)
                     {
                         Console.WriteLine($"Last event end is null, nothing to route.");
+                        return;
                     }
 
                     switch (lastEvent.Type)
