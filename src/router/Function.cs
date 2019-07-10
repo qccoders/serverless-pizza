@@ -35,12 +35,31 @@ namespace ServerlessPizza.Router
             {
                 string json = JsonConvert.SerializeObject(record);
 
-                List<AttributeValue> events = record.Dynamodb.NewImage["events"].L;
+                List<AttributeValue> events;
+
+                try
+                {
+                    events = record.Dynamodb.NewImage["events"].L;
+                }
+                catch (Exception)
+                {
+                    return;
+                }
+
 
                 if (events.Count == 0)
                 {
                     SendSQSMessage("serverless-pizza-prep", json).Wait();
+                    return;
                 }
+
+                var lastEvent = events.Last();
+
+                if (lastEvent.M["end"].S == null || lastEvent.M["end"].S.Trim() == "")
+                {
+                    return;
+                }
+
                 else
                 {
                     switch (events.Last().M["type"].S)
