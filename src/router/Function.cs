@@ -107,7 +107,7 @@ namespace ServerlessPizza.Router
             }
         }
 
-        private async Task<SendMessageResponse> SendSQSMessage(string functionName, string payload)
+        private Task<SendMessageResponse> SendSQSMessage(string functionName, string payload)
         {
             Console.WriteLine($"Sending message to '{functionName}' queue");
 
@@ -116,7 +116,7 @@ namespace ServerlessPizza.Router
             string url = prefix + functionName;
 
             SendMessageRequest request = new SendMessageRequest(url, payload);
-            return await _client.SendMessageAsync(request);
+            return _client.SendMessageAsync(request);
         }
     }
 }
