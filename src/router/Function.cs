@@ -31,7 +31,7 @@ namespace ServerlessPizza.Router
             Task.WhenAll(tasks).Wait();
         }
 
-        private async Task<SendMessageResponse> ProcessRecord(DynamoDBEvent.DynamodbStreamRecord record)
+        private Task<SendMessageResponse> ProcessRecord(DynamoDBEvent.DynamodbStreamRecord record)
         {
             string json = Document.FromAttributeMap(record.Dynamodb.NewImage).ToJson();
             List<AttributeValue> events;
@@ -50,7 +50,7 @@ namespace ServerlessPizza.Router
             // If there aren't any events yet, send the order to Prep
             if (events.Count == 0)
             {
-                return await SendSQSMessage("serverless-pizza-prep", json);
+                return SendSQSMessage("serverless-pizza-prep", json);
             }
 
             // Get the type number of an event
@@ -93,11 +93,11 @@ namespace ServerlessPizza.Router
             switch (getTypeNumber(lastEvent))
             {
                 case 1: // Prep
-                    return await SendSQSMessage("serverless-pizza-cook", json);
+                    return SendSQSMessage("serverless-pizza-cook", json);
                 case 2: // Cook
-                    return await SendSQSMessage("serverless-pizza-finish", json);
+                    return SendSQSMessage("serverless-pizza-finish", json);
                 case 3: // Finish
-                    return await SendSQSMessage("serverless-pizza-deliver", json);
+                    return SendSQSMessage("serverless-pizza-deliver", json);
                 case 4: // Delivery
                     Console.WriteLine("Order delivered, nothing more to do.");
                     return default;
@@ -107,7 +107,7 @@ namespace ServerlessPizza.Router
             }
         }
 
-        private Task<SendMessageResponse> SendSQSMessage(string functionName, string payload)
+        private async Task<SendMessageResponse> SendSQSMessage(string functionName, string payload)
         {
             Console.WriteLine($"Sending message to '{functionName}' queue");
 
@@ -116,7 +116,7 @@ namespace ServerlessPizza.Router
             string url = prefix + functionName;
 
             SendMessageRequest request = new SendMessageRequest(url, payload);
-            return _client.SendMessageAsync(request);
+            return await _client.SendMessageAsync(request);
         }
     }
 }
