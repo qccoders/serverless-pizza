@@ -5,16 +5,25 @@ const dynamoDB = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', con
 
 exports.handler = async (event) => {
     event = JSON.parse(event.Records[0].body);
-    event.events = event.events || [];
+    console.log('event', event);
+    
+    //event.events = event.events || [];
     
     let originalRecord = await getOrder(event.id, event.name);
     originalRecord = originalRecord.Item;
+    
+    event.events = originalRecord.events || [];
+    
+    if (event.events.find(e => e.type === 'Prep')) {
+        console.log('retransmitted event detected, dying.');
+        return;
+    }
     
     let newEvent = { type: 'Prep', start: new Date().toISOString() };
 
     await updateEvents(event.id, event.name, [...event.events, newEvent]);
     
-    await sleep(10000);
+    await sleep(5000);
     
     newEvent.end = new Date().toISOString();
     await updateEvents(event.id, event.name, [...event.events, newEvent]);
@@ -23,6 +32,7 @@ exports.handler = async (event) => {
 const getOrder = (id, name) => {
     let params = {
         TableName: 'serverless-pizza-orders',
+        ConsistentRead: true,
         Key: {
             "id": id,
             "name": name
