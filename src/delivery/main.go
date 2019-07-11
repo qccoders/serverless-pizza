@@ -72,6 +72,8 @@ func get(id string, name string) (order model.Order) {
 		log.Fatal(err)
 	}
 
+	fmt.Printf("raw record: %s", result)
+
 	err = dynamodbattribute.UnmarshalMap(result.Item, &order)
 	return order
 }

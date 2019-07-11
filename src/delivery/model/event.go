@@ -1,7 +1,7 @@
 package model
 
 type Event struct {
-	EventType string `dynamodbav:"size"`
-	Start     string `dynamodbav:"start"`
-	End       int    `dynamodbav:"end"`
+	Type  string `dynamodbav:"type"`
+	Start string `dynamodbav:"start"`
+	End   int    `dynamodbav:"end"`
 }
