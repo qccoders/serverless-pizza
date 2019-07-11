@@ -53,9 +53,8 @@ namespace ServerlessPizza.Router
                 return SendSQSMessage("serverless-pizza-prep", json);
             }
 
-            // Get the type number of an event
-            // A function delegate is used here, but a regular method works just the same
-            Func<AttributeValue, int> getTypeNumber = e =>
+            // Get the type (sequence number) of an event
+            int getEventType(AttributeValue e)
             {
                 try
                 {
@@ -78,10 +77,10 @@ namespace ServerlessPizza.Router
                 {
                     return 0;
                 }
-            };
+            }
 
             // List items in a DynamoDB record are not sorted; find the event with the largest type number
-            var lastEvent = events.OrderBy(e => getTypeNumber(e)).Last();
+            var lastEvent = events.OrderBy(e => getEventType(e)).Last();
 
             // If the event is still in progress, don't send a message
             if (!lastEvent.M.ContainsKey("end"))
@@ -90,7 +89,7 @@ namespace ServerlessPizza.Router
             }
 
             // Using early return enhances readability and keeps this switch statement at a reasonable level of indentation
-            switch (getTypeNumber(lastEvent))
+            switch (getEventType(lastEvent))
             {
                 case 1: // Prep
                     return SendSQSMessage("serverless-pizza-cook", json);
