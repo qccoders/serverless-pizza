@@ -24,7 +24,7 @@ namespace ServerlessPizza.Router
         {
             Console.WriteLine($"Incoming Event: {JsonConvert.SerializeObject(dynamoEvent)}");
 
-            // Process records and send SQS messages in parallel
+            // Process records and send SQS messages asynchronously
             IEnumerable<Task<SendMessageResponse>> tasks = dynamoEvent.Records.Select(r => ProcessRecord(r));
 
             // Wait for everything to finish, then exit
